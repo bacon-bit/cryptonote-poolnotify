@@ -32,13 +32,13 @@ var api = "https://aminingpool.com:8119";
 
 You would run the script with the following options to be check if there was a block in the last 5 minutes:
 
-`./poolnotify -u aminingpool.com -p 8119 -s -c 5`
+`./poolnotify.py -u aminingpool.com -p 8119 -s -c 5`
 
 You can schedule this task to run every 5 minutes with cron to be notified when a new block is found on your pool!
 
 To be notified when your wallet balance increases after a block is confirmed, just add the address with the -w option:
 
-`./poolnotify -u aminingpool.com -p 8119 -s -c 5 -w wallet_address_here`
+`./poolnotify.py -u aminingpool.com -p 8119 -s -c 5 -w wallet_address_here`
 
 ## Donations
 
