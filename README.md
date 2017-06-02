@@ -6,7 +6,7 @@ Checks [Cryptonote Universal Pool](https://github.com/fancoder/cryptonote-univer
 
 ## Setup
 
-1. Clone the repo [] and cd into the poolnotify folder
+1. [Clone the repo](https://github.com/bacon-bit/cryptonote-poolnotify) and cd into the poolnotify folder
 2. Set up the virtual environment by running `python3 -m venv ./` 
 3. Activate the virtual environment [docs](https://docs.python.org/3/library/venv.html#creating-virtual-environments)
     - On Mac/Linux: `source ./bin/activate` 
