@@ -96,35 +96,30 @@ def walletStats(wallet, monitor_hashrate, percentage_drop):
         base_hash = int( float(hash_elements[0]) * hashrate_translations[hash_elements[1]] )
 
         previous_hash_rates = updateHashRate(wallet, base_hash)
+        
+        if (len(previous_hash_rates) >= 2):
+            hashrate_only = [row[1] for row in previous_hash_rates]
 
-        hashrate_only = [row[1] for row in previous_hash_rates]
+            last_rate = hashrate_only[-1:][0]
+            second_last = hashrate_only[-2:-1][0]
 
-        last_rate = hashrate_only[-1:][0]
-        second_last = hashrate_only[-2:-1][0]
+            mean = sum(hashrate_only[:-1]) / len(hashrate_only[:-1])
+            calculated_percentage = (100 - percentage_drop) / 100
 
-        mean = sum(hashrate_only[:-1]) / len(hashrate_only[:-1])
-        calculated_percentage = (100 - percentage_drop) / 100
+            check_one = check_two = False
+            if (last_rate / second_last) < calculated_percentage:
+                check_one = True
+                print('Latest hash rate is ' + str(percentage_drop) + '% lower than second-latest hash rate')
+                
+            if (last_rate / mean) < calculated_percentage:
+                check_two = True
+                print('Latest hash rate is ' + str(percentage_drop) + '% lower than average hash rate')
 
-        check_one = check_two = False
-        if (last_rate / second_last) < calculated_percentage:
-            check_one = True
-            print('Latest hash rate is ' + str(percentage_drop) + '% lower than second-latest hash rate')
-            
-        if (last_rate / mean) < calculated_percentage:
-            check_two = True
-            print('Latest hash rate is ' + str(percentage_drop) + '% lower than average hash rate')
-
-        if check_one & check_two:
-
-            if last_rate > 1000:
-                pretty_rate = str(last_rate/1000) + ' KH/s'
+            if check_one & check_two:
+                print('Sending hashrate notification...')
+                pb.push_note(str(percentage_drop) + '% Hash Rate Drop on ' + a_url, 'Latest hash rate of ' + current_hashrate + ' is ' + str(percentage_drop) + '% lower than previous and average hash rate.')
             else:
-                pretty_rate = str(last_rate) + ' H/s'
-
-            print('Sending hashrate notification...')
-            pb.push_note(str(percentage_drop) + '% Hash Rate Drop on ' + a_url, 'Latest hash rate of ' + current_hashrate + ' is ' + str(percentage_drop) + '% lower than previous and average hash rate.')
-        else:
-            print('Latest hash rate is within ' + str(percentage_drop) + '% of previous and average hash rate')
+                print('Latest hash rate is within ' + str(percentage_drop) + '% of previous and average hash rate')
 
 def lastBlock():
     global a_protocol, a_url, a_port, denom

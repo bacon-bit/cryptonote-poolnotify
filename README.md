@@ -9,7 +9,7 @@ Checks [Cryptonote Universal Pool](https://github.com/fancoder/cryptonote-univer
 1. [Clone the repo](https://github.com/bacon-bit/cryptonote-poolnotify) and cd into the cryptonote-poolnotify folder that was just cloned
 2. Run `pip install -r requirements.txt` to install required packages
 3. Replace "pushbullet_api_key" with your Pushbullet API key on this line in poolnotify.py:
-    - `pb = Pushbullet(pushbullet_api_key)`
+    - `pb = Pushbullet('pushbullet_api_key')`
 4. Make sure poolnotify.py is executable (eg. `chmod +x poolnotify.py`)
 5. Test the script by running `./poolnotify.py --help`
 6. You can now run poolnotify.py as a script or add it as a cron task
