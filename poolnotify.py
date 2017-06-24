@@ -1,6 +1,6 @@
 #!bin/python3
 
-import click, requests, sqlite3, sys
+import click, requests, sqlite3
 from datetime import datetime
 from pushbullet import Pushbullet
 
