@@ -3,6 +3,7 @@
 Checks [Cryptonote Universal Pool](https://github.com/fancoder/cryptonote-universal-pool) mining pools and sends notifications through Pushbullet. 
 
 - Script was built for Python 3.6 but should work in other versions
+- You will need a free Pushbullet account and [API key](https://www.pushbullet.com/#settings/account)
 
 ## Setup
 
