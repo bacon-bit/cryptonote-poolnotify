@@ -9,7 +9,11 @@ a_url = ''
 a_port = ''
 denom = 1
 check_time = 300
-pb = Pushbullet('pushbullet_api_key')
+
+with open ("pushbullet.config", "r") as configfile:
+    pushbullet_api_key=configfile.read().replace('\n', '')
+
+pb = Pushbullet(pushbullet_api_key)
 db = 'poolstats.db'
 
 hashrate_translations = {
