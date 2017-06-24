@@ -1,6 +1,6 @@
 #!bin/python3
 
-import click, requests, sqlite3
+import click, requests, sqlite3, sys
 from datetime import datetime
 from pushbullet import Pushbullet
 
@@ -9,16 +9,44 @@ a_url = ''
 a_port = ''
 denom = 1
 check_time = 300
-pb = Pushbullet(pushbullet_api_key)
+pb = Pushbullet('pushbullet_api_key')
 db = 'poolstats.db'
+
+hashrate_translations = {
+    'H' : 1,
+    'KH' : 1000,
+    'MH' : 1000000,
+    'GH' : 1000000000,
+    'TH' : 1000000000000,
+    'PH' : 1000000000000000
+}
 
 def dbSetup():
     global db
     conn = sqlite3.connect(db)
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS stats (pool_wallet text UNIQUE, balance int, coin_units int, updated int)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS hashrate_history (pool_wallet text, hashrate int, timestamp int)''')
     conn.commit()
     conn.close()
+
+def updateHashRate(wallet, hashrate):
+    global db, a_url
+    conn = sqlite3.connect(db)
+    c = conn.cursor()
+    pool_wallet = a_url + wallet
+    # Add latest
+    c.execute('''INSERT INTO hashrate_history (pool_wallet, hashrate, timestamp) VALUES (?, ?, ?)''', (pool_wallet, hashrate, datetime.utcnow().timestamp()))
+    conn.commit()
+    # Remove all but last 24
+    
+    c.execute('''DELETE FROM hashrate_history WHERE rowid NOT IN ( SELECT rowid FROM hashrate_history WHERE pool_wallet = ? ORDER BY timestamp DESC LIMIT 24 )''', (pool_wallet,))
+    conn.commit()
+    c.execute('''SELECT *, rowid FROM hashrate_history WHERE pool_wallet = ?''', (pool_wallet,))
+    results = c.fetchall()
+    conn.close()
+
+    return results
 
 def updateStats(wallet, balance, units):
     global db, a_url
@@ -50,8 +78,8 @@ def getStats(wallet, balance, units):
     conn.commit()
     conn.close()
 
-def walletStats(wallet):
-    global a_protocol, a_url, a_port, denom
+def walletStats(wallet, monitor_hashrate, percentage_drop):
+    global a_protocol, a_url, a_port, denom, hashrate_translations
 
     dbSetup()
 
@@ -61,9 +89,46 @@ def walletStats(wallet):
 
     getStats(wallet, int(result['stats']['balance']), denom)
 
+    if monitor_hashrate:
+
+        current_hashrate = result['stats']['hashrate']
+        hash_elements = current_hashrate.split(' ')
+        base_hash = int( float(hash_elements[0]) * hashrate_translations[hash_elements[1]] )
+
+        previous_hash_rates = updateHashRate(wallet, base_hash)
+
+        hashrate_only = [row[1] for row in previous_hash_rates]
+
+        last_rate = hashrate_only[-1:][0]
+        second_last = hashrate_only[-2:-1][0]
+
+        mean = sum(hashrate_only[:-1]) / len(hashrate_only[:-1])
+        calculated_percentage = (100 - percentage_drop) / 100
+
+        check_one = check_two = False
+        if (last_rate / second_last) < calculated_percentage:
+            check_one = True
+            print('Latest hash rate is ' + str(percentage_drop) + '% lower than second-latest hash rate')
+            
+        if (last_rate / mean) < calculated_percentage:
+            check_two = True
+            print('Latest hash rate is ' + str(percentage_drop) + '% lower than average hash rate')
+
+        if check_one & check_two:
+
+            if last_rate > 1000:
+                pretty_rate = str(last_rate/1000) + ' KH/s'
+            else:
+                pretty_rate = str(last_rate) + ' H/s'
+
+            print('Sending hashrate notification...')
+            pb.push_note(str(percentage_drop) + '% Hash Rate Drop on ' + a_url, 'Latest hash rate of ' + current_hashrate + ' is ' + str(percentage_drop) + '% lower than previous and average hash rate.')
+        else:
+            print('Latest hash rate is within ' + str(percentage_drop) + '% of previous and average hash rate')
+
 def lastBlock():
     global a_protocol, a_url, a_port, denom
-    request_url = a_protocol + a_url + a_port + '/live_stats'
+    request_url = a_protocol + a_url + a_port + '/stats'
     r = requests.get(request_url)
     result = r.json()
     denom = int(result['config']['coinUnits'])
@@ -83,8 +148,9 @@ def lastBlock():
 @click.option('-s', '--ssl', default=False, is_flag=True, help='SSL mequest mode')
 @click.option('-c', '--check', default=5, help='Number of minutes in the past to check for found block')
 @click.option('-w', '--wallet', default=False, help='Wallet address for wallet stats')
+@click.option('-m', '--hashratemonitorpercent', type=click.IntRange(1, 100, clamp=True), help='Notify if hashrate falls below set percentage between 1 and 100 (as an integer). 20 or more is recommended. Must be used with a wallet address.')
 
-def poolnotify(apiurl, wallet, ssl, port, check):
+def poolnotify(apiurl, wallet, ssl, port, check, hashratemonitorpercent):
     """ Script to monitor Cryptonote Universal Pool API for new blocks """
     global a_protocol, a_url, a_port, db, check_time
 
@@ -103,7 +169,13 @@ def poolnotify(apiurl, wallet, ssl, port, check):
         lastBlock()
 
         if wallet:
-            walletStats(wallet)
+            
+            monitor_hashrate = False
+            if hashratemonitorpercent:
+                monitor_hashrate = True
+
+            walletStats(wallet, monitor_hashrate, hashratemonitorpercent)
+
 
     last_check = datetime.utcnow().isoformat()
     print('Last check at '+ last_check)

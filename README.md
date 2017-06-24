@@ -2,23 +2,17 @@
 
 Checks [Cryptonote Universal Pool](https://github.com/fancoder/cryptonote-universal-pool) mining pools and sends notifications through Pushbullet. 
 
-- Script was built for Python 3.6
+- Script was built for Python 3.6 but should work in other versions
 
 ## Setup
 
-1. [Clone the repo](https://github.com/bacon-bit/cryptonote-poolnotify) and cd into the poolnotify folder
-2. Set up the virtual environment by running `python3 -m venv ./` 
-3. Activate the virtual environment [docs](https://docs.python.org/3/library/venv.html#creating-virtual-environments)
-    - On Mac/Linux: `source ./bin/activate` 
-    - On Windows cmd.exe: `Scripts\activate.bat`
-    - On Windows Powershell: `Scripts\Activate.ps1`
-4. Run `pip install -r requirements.txt` to install required packages
-5. Close the virtual environment `deactivate`
-6. Replace "pushbullet_api_key" with your Pushbullet API key on this line in poolnotify.py:
-    - `pb = Pushbullet(pushbullet_api_key)`  
-7. Make sure poolnotify.py is executable (eg. `chmod +x poolnotify.py`)
-8. Test the script by running `./poolnotify.py --help`
-9. You can now run poolnotify.py as a script and add it as a cron task
+1. [Clone the repo](https://github.com/bacon-bit/cryptonote-poolnotify) and cd into the cryptonote-poolnotify folder that was just cloned
+2. Run `pip install -r requirements.txt` to install required packages
+3. Replace "pushbullet_api_key" with your Pushbullet API key on this line in poolnotify.py:
+    - `pb = Pushbullet(pushbullet_api_key)`
+4. Make sure poolnotify.py is executable (eg. `chmod +x poolnotify.py`)
+5. Test the script by running `./poolnotify.py --help`
+6. You can now run poolnotify.py as a script or add it as a cron task
 
 ## Run
 
@@ -36,9 +30,24 @@ You would run the script with the following options to be check if there was a b
 
 You can schedule this task to run every 5 minutes with cron to be notified when a new block is found on your pool!
 
+### Wallet Balance Update Monitoring
+
 To be notified when your wallet balance increases after a block is confirmed, just add the address with the -w option:
 
 `./poolnotify.py -u aminingpool.com -p 8119 -s -c 5 -w wallet_address_here`
+
+### Hash Rate Drop Monitoring
+
+You can be notified when your last hash rate reported by the pool drops below a set amount using the `-m` flag with a percentage amount. Recommended amount is 20% or greater to account for regular fluctuations in hash rate.
+
+`./poolnotify.py -u aminingpool.com -p 8119 -s -c 5 -w wallet_address_here -m 20`
+
+You will only receive a notification if both of these conditions are true (assuming you set a check of 20%):
+
+1. the latest hash rate is more than 20% lower than the previous hash rate
+2. the latest hash rate is more than 20% lower than the average of the last 24 pool-reported hash rates
+
+This should account for regular fluctuations and only notify you once for a sudden drop.
 
 ## Donations
 
