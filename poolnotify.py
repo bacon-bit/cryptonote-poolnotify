@@ -82,6 +82,26 @@ def getStats(wallet, balance, units):
     conn.commit()
     conn.close()
 
+def checkForDrop(history_array, percentage):
+    calculated_percentage = (100 - percentage) / 100
+
+    last_rate = history_array[-1:][0]
+    second_last = history_array[-2:-1][0]
+    mean = sum(history_array[:-1]) / len(history_array[:-1])
+
+    check_one = check_two = False
+    if (last_rate / second_last) < calculated_percentage:
+        check_one = True
+        print('Latest hash rate is ' + str(percentage) + '% lower than second-latest hash rate')
+        
+    if (last_rate / mean) < calculated_percentage:
+        check_two = True
+        print('Latest hash rate is ' + str(percentage) + '% lower than average hash rate')
+
+    if check_one & check_two:
+        return True
+    return False
+
 def walletStats(wallet, monitor_hashrate, percentage_drop):
     global a_protocol, a_url, a_port, denom, hashrate_translations
 
@@ -101,23 +121,11 @@ def walletStats(wallet, monitor_hashrate, percentage_drop):
 
         previous_hash_rates = updateHashRate(wallet, base_hash)
         
-        if (len(previous_hash_rates) >= 2):
+        if (len(previous_hash_rates) >= 3):
             hashrate_only = [row[1] for row in previous_hash_rates]
 
-            last_rate = hashrate_only[-1:][0]
-            second_last = hashrate_only[-2:-1][0]
-
-            mean = sum(hashrate_only[:-1]) / len(hashrate_only[:-1])
-            calculated_percentage = (100 - percentage_drop) / 100
-
-            check_one = check_two = False
-            if (last_rate / second_last) < calculated_percentage:
-                check_one = True
-                print('Latest hash rate is ' + str(percentage_drop) + '% lower than second-latest hash rate')
-                
-            if (last_rate / mean) < calculated_percentage:
-                check_two = True
-                print('Latest hash rate is ' + str(percentage_drop) + '% lower than average hash rate')
+            check_one = checkForDrop(hashrate_only, percentage_drop)
+            check_two = checkForDrop(hashrate_only[:-1], percentage_drop)
 
             if check_one & check_two:
                 print('Sending hashrate notification...')
